@@ -21,6 +21,7 @@ ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 app = FastAPI()
 reader = easyocr.Reader(OCR_LANGS_OTHER)
 
+# start backend: uvicorn main:app --reload
 @app.post("/upload")
 async def upload(file: UploadFile = File(...),
                  target_language: str = Form(...)):
