@@ -65,7 +65,7 @@ async def upload(file: UploadFile = File(...),
         source_language = detect(joined_text) if joined_text else "unknown"
     except LangDetectException:
         source_language = "unknown"
-    if source_language not in TARGET_LANGS:
+    if source_language not in OCR_LANGS_OTHER:
         raise HTTPException(
             status_code=400,
         )
