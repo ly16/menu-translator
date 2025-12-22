@@ -4,8 +4,6 @@ from openai import OpenAI
 def extract_dish_names_llm_nano(client: OpenAI, menu_text: str):
     if not menu_text.strip():
         return []
-
-    # 限制长度，防止 nano 被信息淹没
     menu_text = menu_text[:1500]
 
     prompt = f"""

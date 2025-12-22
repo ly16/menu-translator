@@ -85,7 +85,6 @@ async def upload(file: UploadFile = File(...),
     # 5. extract dishname only
     dish_names = extract_dish_names_llm_nano(openai_client, joined_text)
     dish_names = [dish for dish in dish_names if ',' not in dish]
-    print("dish_names: ", dish_names)
     if (dish_names is None) or (len(dish_names) == 0):
         raise HTTPException(
             status_code=400,
@@ -107,7 +106,6 @@ async def upload(file: UploadFile = File(...),
     {dish_text}
     """
 
-    print("final prompt: ", prompt)
     response = openai_client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
@@ -116,10 +114,9 @@ async def upload(file: UploadFile = File(...),
         ],
         max_completion_tokens=300
     )
-    print("response: ", response)
     description = response.choices[0].message.content
-    print("description: ", description)
 
+    # 7. build json response
     lines = [line.strip() for line in response.choices[0].message.content.splitlines() if line.strip()]
     result = [{"name": name, "description": lines[i] if i < len(lines) else ""} for i, name in
               enumerate(dish_names)]
@@ -128,5 +125,4 @@ async def upload(file: UploadFile = File(...),
         "source_language": source_language,
         "target_language": target_language,
         "json_resp": result,
-        "response": description
     }
