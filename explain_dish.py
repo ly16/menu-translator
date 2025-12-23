@@ -21,6 +21,7 @@ def get_dish_explanations(openai_client: OpenAI, dish_names: list[str], target_l
     - Return plain text only, one description per line
     - This is a restaurant menu description, not a dictionary translation
     - Include a brief, neutral description of the dish style or preparation
+    - Description should include, when applicable:texture or mouth feel,cooking method or preparation style, dish positioning 
     - Do NOT invent ingredients that are not explicitly mentioned in the dish name
     - If a food term has a fixed, well-known translation, use the standard one
     - If unsure, use safe and general wording suitable for menus
