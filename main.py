@@ -2,12 +2,10 @@ from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from PIL import Image
 import io
 import easyocr
-from langdetect import detect, LangDetectException
-import numpy as np
 from openai import OpenAI
 from config import OCR_LANGS_OTHER, OPENAI_API_KEY, TARGET_LANGS, ALLOWED_TYPES, MAX_FILE_SIZE
 from explain_dish import get_dish_explanations
-from extract_dishname import extract_dish_names_llm_nano, get_dish_names
+from extract_dishname import get_dish_names
 from language_detect import detect_language
 from ocr import extract_text_from_image_bytes
 
