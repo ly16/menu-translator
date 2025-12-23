@@ -1,5 +1,3 @@
-from dotenv import load_dotenv
-import os
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from PIL import Image
 import io
@@ -7,30 +5,16 @@ import easyocr
 from langdetect import detect, LangDetectException
 import numpy as np
 from openai import OpenAI
-
-from extract_dishname import extract_dish_names_llm_nano
-
-# variables
-OCR_LANGS_OTHER = [ 'en', 'fr', 'es']
-TARGET_LANGS = {'en', 'zh', 'ja', 'fr', 'es'}
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
-if not api_key:
-    raise ValueError("OPENAI_API_KEY not found. Please check your .env file.")
-
-# 📱 iOS App：
-# 👉 60–70% HEIC --> convert to JPEG in frontend
-# 🌐 H5 Mobile Web：
-# 👉 95% JPEG
-# 🤖 Android App：
-# 👉 90% JPEG
-ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
+from config import OCR_LANGS_OTHER, OPENAI_API_KEY, TARGET_LANGS, ALLOWED_TYPES, MAX_FILE_SIZE
+from explain_dish import get_dish_explanations
+from extract_dishname import extract_dish_names_llm_nano, get_dish_names
+from language_detect import detect_language
+from ocr import extract_text_from_image_bytes
 
 # clients
 app = FastAPI()
 reader = easyocr.Reader(OCR_LANGS_OTHER)
-openai_client = OpenAI(api_key=api_key)
+openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 # start backend: uvicorn main:app --reload
 @app.post("/upload")
@@ -65,61 +49,27 @@ async def upload(file: UploadFile = File(...),
         )
 
     # 3. Extract text: OCR
-    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    image_np = np.array(image)
-    ocr_result = reader.readtext(image_np)
-    texts = [text for _, text, conf in ocr_result if conf > 0.4]
+    texts = extract_text_from_image_bytes(image_bytes, reader)
 
     # 4. recognize source_language: OCR
     joined_text = "\n".join(texts)
-    try:
-        source_language = detect(joined_text) if joined_text else "unknown"
-    except LangDetectException:
-        source_language = "unknown"
-    if source_language not in OCR_LANGS_OTHER:
+    source_language = detect_language(joined_text)
+    if source_language == "unsupported":
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported source language: {source_language}"
         )
 
     # 5. extract dishname only
-    dish_names = extract_dish_names_llm_nano(openai_client, joined_text)
-    dish_names = [dish for dish in dish_names if ',' not in dish]
-    if (dish_names is None) or (len(dish_names) == 0):
+    dish_names = get_dish_names(openai_client, joined_text)
+    if not dish_names:
         raise HTTPException(
             status_code=400,
             detail="Didn't find any dish names"
         )
 
     # 6. get explanation
-    dish_text = "\n".join(dish_names)
-
-    prompt = f"""
-    For each dish name below, write ONE short explanation.
-
-    Rules:
-    - Output language: {target_language}
-    - One sentence per dish. Simple and clear.
-    - Return plain text, one description per line.
-
-    Dish names:
-    {dish_text}
-    """
-
-    response = openai_client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant that writes menu item descriptions."},
-            {"role": "user", "content": prompt}
-        ],
-        max_completion_tokens=300
-    )
-    description = response.choices[0].message.content
-
-    # 7. build json response
-    lines = [line.strip() for line in response.choices[0].message.content.splitlines() if line.strip()]
-    result = [{"name": name, "description": lines[i] if i < len(lines) else ""} for i, name in
-              enumerate(dish_names)]
+    result = get_dish_explanations(openai_client, dish_names, target_language)
 
     return {
         "source_language": source_language,

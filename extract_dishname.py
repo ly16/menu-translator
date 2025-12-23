@@ -1,6 +1,12 @@
 import json
 from openai import OpenAI
 
+def get_dish_names(openai_client: OpenAI, text: str):
+    dish_names = extract_dish_names_llm_nano(openai_client, text)
+    # remove items with commas if needed
+    dish_names = [dish for dish in dish_names if ',' not in dish]
+    return dish_names
+
 def extract_dish_names_llm_nano(client: OpenAI, menu_text: str):
     if not menu_text.strip():
         return []
