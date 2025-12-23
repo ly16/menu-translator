@@ -15,6 +15,10 @@ reader = easyocr.Reader(OCR_LANGS_OTHER)
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 # start backend: uvicorn main:app --reload
+@app.get("/")
+async def root():
+    return {"message": "FastAPI + Render successfully!"}
+
 @app.post("/upload")
 async def upload(file: UploadFile = File(...),
                  target_language: str = Form(...)):
