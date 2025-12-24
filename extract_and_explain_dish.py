@@ -52,15 +52,21 @@ def extract_and_explain_dishes(
 
 
     unparsed = response.choices[0].message.content.strip()
-    pattern = r"([A-Z\s]+)\s*\|\s*([^\n：:]+)[：:](.*?)(?=(?:\n[A-Z\s]+\s*\|)|$)"
-    matches = re.findall(pattern, unparsed, re.DOTALL)
-    parsed_result = []
-    for source_name, target_name, description in matches:
-        translation_text = f"{target_name.strip()}: {description.strip()}"
-        parsed_result.append({
-            "source_name": source_name.strip(),
-            "translation": translation_text
+    print("unparsed:", unparsed)
+    return parse_menu_to_json(unparsed)
+
+def parse_menu_to_json(text: str):
+    result = []
+
+    for line in text.strip().splitlines():
+        parts = [p.strip() for p in line.split("|", 1)]
+        if len(parts) != 2:
+            continue
+        source_name, translation = parts
+        result.append({
+            "source_name": source_name,
+            "translation": translation
         })
 
-    return parsed_result
+    return result
 
