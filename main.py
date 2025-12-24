@@ -1,12 +1,8 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from PIL import Image
 import io
-import easyocr
-from openai import OpenAI
-from config import OCR_LANGS_OTHER, OPENAI_API_KEY, TARGET_LANGS, ALLOWED_TYPES, MAX_FILE_SIZE
-from explain_dish import get_dish_explanations
-from extract_dishname import get_dish_names
-from language_detect import detect_language
+from config import TARGET_LANGS, ALLOWED_TYPES, MAX_FILE_SIZE
+from extract_and_explain_dish import extract_and_explain_dishes
 from ocr import extract_text_from_image_bytes
 from utils import get_reader, get_openai_client
 
@@ -20,6 +16,7 @@ async def root():
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...),
+                 source_language: str = Form(...),
                  target_language: str = Form(...)):
     # 1. input validation
     if target_language not in TARGET_LANGS:
@@ -50,29 +47,13 @@ async def upload(file: UploadFile = File(...),
         )
 
     # 3. Extract text: OCR
-    reader = get_reader()
+    reader = get_reader(source_language)
     texts = extract_text_from_image_bytes(image_bytes, reader)
 
-    # 4. recognize source_language: OCR
+    # 4. extract dishname and description by LLM
     joined_text = "\n".join(texts)
-    source_language = detect_language(joined_text)
-    if source_language == "unsupported":
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unsupported source language: {source_language}"
-        )
-
-    # 5. extract dishname only
     openai_client = get_openai_client()
-    dish_names = get_dish_names(openai_client, joined_text)
-    if not dish_names:
-        raise HTTPException(
-            status_code=400,
-            detail="Didn't find any dish names"
-        )
-
-    # 6. get explanation
-    result = get_dish_explanations(openai_client, dish_names, target_language)
+    result = extract_and_explain_dishes(openai_client, joined_text, target_language)
 
     return {
         "source_language": source_language,

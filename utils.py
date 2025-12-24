@@ -1,18 +1,17 @@
 import threading
 import easyocr
-from config import OCR_LANGS_OTHER
 from openai import OpenAI
 from config import OPENAI_API_KEY
 
 reader = None
 reader_lock = threading.Lock()
 
-def get_reader():
+def get_reader(source_language: str):
     global reader
     if reader is None:
         with reader_lock:
             if reader is None:
-                reader = easyocr.Reader(OCR_LANGS_OTHER)
+                reader = easyocr.Reader([source_language])
     return reader
 
 
