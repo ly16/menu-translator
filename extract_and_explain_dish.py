@@ -23,7 +23,7 @@ def extract_and_explain_dishes(
     You will receive OCR-extracted menu text with dish names and optional context (ingredients, preparation, etc.).
     For each dish:
     - Translate the dish name into the target language.
-    - Write a rich, menu-style description in the target language.
+    - Write a rich, menu-style one sentence description in the target language.
     - Include when possible: texture, flavor, cooking method, dish positioning (starter, dessert, etc.).
     - Do not invent ingredients.
     - Keep original dish order.
@@ -42,7 +42,7 @@ def extract_and_explain_dishes(
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         temperature=0,
-        max_tokens=400,
+        max_tokens=600,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "developer", "content": developer_prompt},

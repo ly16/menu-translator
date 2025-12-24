@@ -55,8 +55,4 @@ async def upload(file: UploadFile = File(...),
     openai_client = get_openai_client()
     result = extract_and_explain_dishes(openai_client, joined_text, target_language)
 
-    return {
-        "source_language": source_language,
-        "target_language": target_language,
-        "json_resp": result,
-    }
+    return result
