@@ -1,21 +1,56 @@
-from PIL import Image
-import io
-import numpy as np
-import easyocr
+from typing import List
+import requests
+
+OCR_SPACE_API_URL = "https://api.ocr.space/parse/image"
+OCR_SPACE_API_KEY = "K81626534688957"
+
+SOURCE_LANG_MAP = {
+    "Simplified Chinese": "chs",
+    "Traditional Chinese": "cht",
+    "English": "eng",
+    "Japanese": "jpn",
+    "French": "fra",
+    "Spanish": "spa",
+    "Italian": "ita",
+    "Korean": "kor"
+}
 
 
 def extract_text_from_image_bytes(
     image_bytes: bytes,
-    reader: easyocr.Reader,
-    min_confidence: float = 0.4
-) -> list[str]:
-    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    image_np = np.array(image)
-    ocr_result = reader.readtext(image_np)
-    texts = [
-        text
-        for _, text, conf in ocr_result
-        if conf >= min_confidence
-    ]
+    source_language: str
+) -> List[str]:
+
+    lang_code = SOURCE_LANG_MAP.get(source_language, "eng")
+
+    response = requests.post(
+        OCR_SPACE_API_URL,
+        files={"file": ("image.jpg", image_bytes)},
+        data={
+            "apikey": OCR_SPACE_API_KEY,
+            "language": lang_code,
+            "isOverlayRequired": "false"
+        },
+        timeout=30
+    )
+
+    if response.status_code != 200:
+        raise RuntimeError(f"OCR.Space API request failed with status {response.status_code}")
+
+    result = response.json()
+    if result.get("IsErroredOnProcessing"):
+        raise RuntimeError(f"OCR.Space API error: {result.get('ErrorMessage', 'Unknown error')}")
+
+    texts = []
+    for parsed_result in result.get("ParsedResults", []):
+        raw_text = parsed_result.get("ParsedText", "")
+        if not raw_text.strip():
+            continue
+        lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
+        for line in lines:
+            sub_parts = [part.strip() for part in line.split(",") if part.strip()]
+            texts.extend(sub_parts)
+    texts = list(dict.fromkeys(texts))
+    texts = [t for t in texts if t]
 
     return texts

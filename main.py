@@ -1,10 +1,11 @@
+import logging
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from PIL import Image
 import io
 from config import ALLOWED_TYPES, MAX_FILE_SIZE, SOURCE_LANG_MAP
 from extract_and_explain_dish import extract_and_explain_dishes
 from ocr import extract_text_from_image_bytes
-from utils import get_reader, get_openai_client
+from utils import get_openai_client
 
 # clients
 app = FastAPI()
@@ -47,8 +48,8 @@ async def upload(file: UploadFile = File(...),
         )
 
     # 3. Extract text: OCR
-    reader = get_reader(source_language)
-    texts = extract_text_from_image_bytes(image_bytes, reader)
+    texts = extract_text_from_image_bytes(image_bytes, source_language)
+    logging.log(logging.DEBUG, f"extracted text from image {texts}")
 
     # 4. extract dishname and description by LLM
     joined_text = "\n".join(texts)

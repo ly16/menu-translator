@@ -1,5 +1,4 @@
 from openai import OpenAI
-import re
 
 def extract_and_explain_dishes(
     client: OpenAI,
@@ -52,7 +51,6 @@ def extract_and_explain_dishes(
 
 
     unparsed = response.choices[0].message.content.strip()
-    print("unparsed:", unparsed)
     return parse_menu_to_json(unparsed)
 
 def parse_menu_to_json(text: str):
