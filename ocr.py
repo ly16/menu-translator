@@ -1,8 +1,8 @@
 from typing import List
 import requests
+from config import OCR_SPACE_API_KEY
 
 OCR_SPACE_API_URL = "https://api.ocr.space/parse/image"
-OCR_SPACE_API_KEY = "K81626534688957"
 
 SOURCE_LANG_MAP = {
     "Simplified Chinese": "chs",
