@@ -1,11 +1,8 @@
-import logging
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from PIL import Image
 import io
-from config import ALLOWED_TYPES, MAX_FILE_SIZE, SOURCE_LANG_MAP
-from extract_and_explain_dish import extract_and_explain_dishes
-from ocr import extract_text_from_image_bytes
-from utils import get_openai_client
+from config import ALLOWED_TYPES, MAX_FILE_SIZE
+from gemini_extract_and_explain import analyze_menu_image_gemini
 
 # clients
 app = FastAPI()
@@ -17,14 +14,8 @@ async def root():
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...),
-                 source_language: str = Form(...),
                  target_language: str = Form(...)):
     # 1. input validation
-    if source_language not in SOURCE_LANG_MAP:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unsupported source language: {source_language}"
-        )
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(
             status_code=400,
@@ -47,13 +38,6 @@ async def upload(file: UploadFile = File(...),
             detail="Invalid image file"
         )
 
-    # 3. Extract text: OCR
-    texts = extract_text_from_image_bytes(image_bytes, source_language)
-    logging.log(logging.DEBUG, f"extracted text from image {texts}")
-
-    # 4. extract dishname and description by LLM
-    joined_text = "\n".join(texts)
-    openai_client = get_openai_client()
-    result = extract_and_explain_dishes(openai_client, joined_text, target_language)
-
+    # 3. extract dishname and description by LLM
+    result = analyze_menu_image_gemini(image_bytes, target_language)
     return result

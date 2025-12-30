@@ -16,13 +16,10 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 # 👉 60–70% HEIC --> convert to JPEG in frontend
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
-# OpenAI API key
+# Gemini API key
 if os.getenv("RENDER") != "true":
     load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY not found. Please check your .env file.")
-OCR_SPACE_API_KEY = os.getenv("OCR_SPACE_API_KEY")
-if not OCR_SPACE_API_KEY:
-    raise ValueError("OCR_SPACE_API_KEY not found. Please check your .env file.")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY not found. Please check your .env file.")
