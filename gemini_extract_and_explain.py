@@ -22,7 +22,7 @@ def analyze_menu_image_gemini(image_bytes: bytes, target_language: str) -> List[
     Rules:
     - Use ONE line per item.
     - source_name: The exact dish name as written on the menu.
-    - translation: [Translated Name] : [Appetizing description].
+    - translation: [Translated Name]: [Appetizing description].
     - Use exactly one "|" character as a separator.
     - Do not include categories (like 'Appetizers'), prices, or contact info.
     """
