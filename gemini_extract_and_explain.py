@@ -1,11 +1,8 @@
 from typing import List
 from google import genai
 from google.genai import types
-from config import GEMINI_API_KEY
 
-client = genai.Client(api_key=GEMINI_API_KEY)
-
-def analyze_menu_image_gemini(image_bytes: bytes, target_language: str) -> List[dict]:
+def analyze_menu_image_gemini(image_bytes: bytes, target_language: str, client: genai.Client) -> List[dict]:
     prompt_text = f"""
     Analyze this menu image strictly. 
     Target Language: {target_language}.

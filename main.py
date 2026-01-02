@@ -1,16 +1,32 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Form
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from google import genai
 from PIL import Image
 import io
-from config import ALLOWED_TYPES, MAX_FILE_SIZE
+from config import ALLOWED_TYPES, MAX_FILE_SIZE, GEMINI_API_KEY
 from gemini_extract_and_explain import analyze_menu_image_gemini
+from gemini_more_details import get_dish_details
 
 # clients
 app = FastAPI()
+gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 
 # start backend: uvicorn main:app --reload
 @app.get("/")
 async def root():
     return {"message": "FastAPI initialized successfully!"}
+
+@app.post("/details")
+async def details(dish_context: str = File(...),
+                 target_language: str = Form(...),
+                  restaurant_name: str = Form(...)):
+    try:
+        result = get_dish_details(dish_context, target_language, restaurant_name, gemini_client)
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="Calling LLM error"
+        )
+    return result
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...),
@@ -38,6 +54,6 @@ async def upload(file: UploadFile = File(...),
             detail="Invalid image file"
         )
 
-    # 3. extract dishname and description by LLM
-    result = analyze_menu_image_gemini(image_bytes, target_language)
+    # 3. extract dish name and description by LLM
+    result = analyze_menu_image_gemini(image_bytes, target_language, gemini_client)
     return result
