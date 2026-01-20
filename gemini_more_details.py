@@ -1,8 +1,9 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
 from google import genai
 from google.genai import types
+import re
 
-def get_dish_details(dish_name: str, target_language: str, restaurant: str, client: genai.Client) -> Dict[str, Any]:
+def get_dish_details(dish_list: List[str], target_language: str, restaurant: str, client: genai.Client) -> Dict[str, Any]:
     # 1. Parse the dish_context
     restaurant_name = f"at the restaurant '{restaurant}'" if restaurant else "in general or at popular locations"
 
@@ -10,20 +11,31 @@ def get_dish_details(dish_name: str, target_language: str, restaurant: str, clie
     # This is vital for finding specific restaurant reviews
     tools = [types.Tool(google_search=types.GoogleSearch())]
     prompt = f"""
-        Search for reviews and food blogger mentions for the dish '{dish_name}' at the restaurant '{restaurant_name}'.
+        Act as a professional food critic. Search for recent reviews and food blogger
+        mentions for the following dishes: {dish_list} at the restaurant {restaurant_name}.
+        Keep the field keys dish_name exactly as written below to act as parsing anchors.
         
-        In {target_language}, provide:
-        1. A summary of customer sentiment (is it a signature dish?).
-        2. Real-world feedback on the portion size and flavor.
-        3. Provide any 'pro-tips' from reviewers, such as hidden ways to order the dish, custom modifications, or recommended food and drink pairings.".
-        4. Provide the answer in a structured, easy-to-read format.
-        5. provide a profile on a scale of 0-5:
-            - Spiciness: (0=none, 5=fiery)
-            - Sweetness: (0=savory, 5=dessert-like)
-            - Acidity: (0=flat, 5=very tart)
-            - Richness/Fat: (0=light/lean, 5=heavy/oily)
-            - Texture: Describe if it's Crunchy, Tender, or Chewy.
-        Note: If the specific restaurant is not provided or found, base the analysis on the most common authentic versions of this dish.
+        OUTPUT RULES:
+        1. Provide ONLY raw plain text. No Markdown.
+        2. Field keys must stay in English (dish_name, details, link) to serve as parsing anchors.
+        3. The "details" field must be a single, cohesive paragraph containing: 
+           - Sentiment (Signature/Hidden Gem)
+           - Feedback (Portion/Flavor)
+           - Pro-tips (Hacks/Pairings)
+           - Numerical ratings (Spiciness, Sweetness, Acidity, Richness on a 0-5 scale)
+           - Texture keywords
+        
+        STRUCTURE PER DISH:
+        
+        === DISH_START ===
+        dish_name: [Original Name from dish_list]
+        details: [Write all descriptive content here in {target_language}]
+        link: [Provide exactly ONE direct URL to a reputable review]
+        === DISH_END ===
+            
+        Note: If the specific restaurant is not found, base analysis on the most 
+        common authentic versions. Do not include introductory text; start directly 
+        with the first DISH_START marker.
         """
 
     try:
@@ -37,18 +49,43 @@ def get_dish_details(dish_name: str, target_language: str, restaurant: str, clie
             )
         )
 
-        sources = []
-        metadata = response.candidates[0].grounding_metadata
-        if metadata and metadata.grounding_chunks:
-            for chunk in metadata.grounding_chunks:
-                if chunk.web and chunk.web.uri:
-                    sources.append(chunk.web.uri)
-        return {
-            "dish_name": dish_name,
-            "details": response.text,
-            "source_links": sources
-        }
+        raw_response = response.text
+        return parse_dish_report(raw_response)
 
     except Exception as e:
         print(f"Error during calling Gemini: {e}")
         return []
+
+
+def parse_dish_report(raw_text):
+    blocks = raw_text.split("=== DISH_START ===")
+    results = []
+
+    for block in blocks:
+        if "=== DISH_END ===" not in block:
+            continue
+
+        content = block.split("=== DISH_END ===")[0].strip()
+        lines = content.split('\n')
+
+        # Initialize dictionary
+        entry = {"dish_name": "", "details": "", "link": ""}
+
+        for line in lines:
+            line = line.strip()
+            if not line: continue
+
+            # Simple keyword matching for anchors
+            if line.lower().startswith("dish_name:"):
+                entry["dish_name"] = line.split(":", 1)[1].strip()
+            elif line.lower().startswith("link:"):
+                entry["link"] = line.split(":", 1)[1].strip()
+            elif line.lower().startswith("details:"):
+                entry["details"] = line.split(":", 1)[1].strip()
+            else:
+                # If a field overflows to a second line, append it to details
+                if entry["details"]:
+                    entry["details"] += " " + line
+
+        results.append(entry)
+    return results
