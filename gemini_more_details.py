@@ -1,7 +1,6 @@
 from typing import Any, Dict, List
 from google import genai
 from google.genai import types
-import re
 
 def get_dish_details(dish_list: List[str], target_language: str, restaurant: str, client: genai.Client) -> Dict[str, Any]:
     # 1. Parse the dish_context
@@ -12,7 +11,8 @@ def get_dish_details(dish_list: List[str], target_language: str, restaurant: str
     tools = [types.Tool(google_search=types.GoogleSearch())]
     prompt = f"""
         Act as a professional food critic. Search for recent reviews and food blogger
-        mentions for the following dishes: {dish_list} at the restaurant {restaurant_name}.
+        Iterate through the LIST OF DISHES {dish_list} at the restaurant {restaurant_name},
+        and create a separate block for EACH item.
         Keep the field keys dish_name exactly as written below to act as parsing anchors.
         
         OUTPUT RULES:
