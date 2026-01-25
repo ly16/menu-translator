@@ -17,13 +17,14 @@ def get_dish_details(dish_list: List[str], target_language: str, restaurant: str
         
         OUTPUT RULES:
         1. Provide ONLY raw plain text. No Markdown.
-        2. Field keys must stay in English (dish_name, details, link) to serve as parsing anchors.
+        2. Field keys must stay in English (dish_name, details, link, link_title) to serve as parsing anchors.
         3. The "details" field must be a single, cohesive paragraph containing: 
            - Sentiment (Signature/Hidden Gem)
            - Feedback (Portion/Flavor)
            - Pro-tips (Hacks/Pairings)
            - Numerical ratings (Spiciness, Sweetness, Acidity, Richness on a 0-5 scale)
            - Texture keywords
+        4. For "link_title"(MAX 10 words), provide the actual headline or a CONCISE summary of the page title found in the link.
         
         STRUCTURE PER DISH:
         
@@ -31,6 +32,7 @@ def get_dish_details(dish_list: List[str], target_language: str, restaurant: str
         dish_name: [Original Name from dish_list]
         details: [Write all descriptive content here in {target_language}]
         link: [Provide exactly ONE direct URL to a reputable review]
+        link_title: [Title of the linked content]
         === DISH_END ===
             
         Note: If the specific restaurant is not found, base analysis on the most 
@@ -69,7 +71,7 @@ def parse_dish_report(raw_text):
         lines = content.split('\n')
 
         # Initialize dictionary
-        entry = {"dish_name": "", "details": "", "link": ""}
+        entry = {"dish_name": "", "details": "", "link": "", "link_title": ""}
 
         for line in lines:
             line = line.strip()
@@ -82,6 +84,8 @@ def parse_dish_report(raw_text):
                 entry["link"] = line.split(":", 1)[1].strip()
             elif line.lower().startswith("details:"):
                 entry["details"] = line.split(":", 1)[1].strip()
+            elif line.lower().startswith("link_title:"):
+                entry["link_title"] = line.split(":", 1)[1].strip()
             else:
                 # If a field overflows to a second line, append it to details
                 if entry["details"]:
