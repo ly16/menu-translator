@@ -13,3 +13,7 @@ if os.getenv("RENDER") != "true":
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY not found. Please check your .env file.")
+
+GEMINI_BATCH_SIZE = int(os.getenv("GEMINI_BATCH_SIZE"))
+if not GEMINI_BATCH_SIZE:
+    raise ValueError("GEMINI_BATCH_SIZE not found. Please check your .env file.")
