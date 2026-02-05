@@ -23,16 +23,16 @@ def analyze_menu_image_gemini(image_bytes: bytes, target_language: str, client: 
     - Use exactly one "|" character as a separator.
     - Do not include categories (like 'Appetizers'), prices, or contact info.
     """
-
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3-flash-preview",
         contents=[
             types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
             prompt_text
         ],
         config=types.GenerateContentConfig(
             response_mime_type="text/plain",
-            temperature=0.1
+            temperature=0.1,
+            thinking_config=types.ThinkingConfig(thinking_level="MINIMAL")
         )
     )
 

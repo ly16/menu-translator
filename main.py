@@ -6,7 +6,6 @@ from config import ALLOWED_TYPES, MAX_FILE_SIZE, GEMINI_API_KEY
 from gemini_extract_and_explain import analyze_menu_image_gemini
 from gemini_more_details import get_dish_details
 from typing import Optional, List
-import traceback
 
 # clients
 app = FastAPI()
