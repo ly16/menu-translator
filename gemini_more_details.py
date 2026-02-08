@@ -4,12 +4,21 @@ from google.genai import types
 from config import GEMINI_BATCH_SIZE
 import asyncio
 
-async def get_dish_details(dish_list: List[str], target_language: str, restaurant: str, client: genai.Client) -> Dict[str, Any]:
+async def get_dish_details(
+    dish_list: List[str], target_language: str, restaurant: str, client: genai.Client
+) -> Dict[str, Any]:
     # 1. Parse the dish_context
-    restaurant_name = f"at the restaurant '{restaurant}'" if restaurant else "in general or at popular locations"
+    restaurant_name = (
+        f"at the restaurant '{restaurant}'"
+        if restaurant
+        else "in general or at popular locations"
+    )
 
     # 2. Call Gemini in parallel
-    batches = [dish_list[i:i + GEMINI_BATCH_SIZE] for i in range(0, len(dish_list), GEMINI_BATCH_SIZE)]
+    batches = [
+        dish_list[i : i + GEMINI_BATCH_SIZE]
+        for i in range(0, len(dish_list), GEMINI_BATCH_SIZE)
+    ]
     # Create a list of tasks for concurrent execution
     tasks = [
         process_batch(batch, target_language, restaurant_name, client)
@@ -20,8 +29,13 @@ async def get_dish_details(dish_list: List[str], target_language: str, restauran
     # Flatten the list of lists into a single list
     return [item for sublist in results_nested for item in sublist]
 
-async def process_batch(dish_list: List[str], target_language: str, restaurant_name: str, client: genai.Client) -> List[
-    Dict[str, Any]]:
+
+async def process_batch(
+    dish_list: List[str],
+    target_language: str,
+    restaurant_name: str,
+    client: genai.Client,
+) -> List[Dict[str, Any]]:
     tools = [types.Tool(google_search=types.GoogleSearch())]
 
     prompt = f"""
@@ -54,17 +68,21 @@ async def process_batch(dish_list: List[str], target_language: str, restaurant_n
     try:
         # Use the Async (.aio) Gemini Client
         response = await client.aio.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3-flash-preview",
             contents=prompt,
             config=types.GenerateContentConfig(
                 tools=tools,
-                temperature=0.2
-            )
+                temperature=0.1,
+                thinking_config=types.ThinkingConfig(thinking_level="MINIMAL"),
+            ),
         )
         parsed_items = parse_dish_report(response.text)
         valid_link = ""
         valid_title = ""
-        if response.candidates[0].grounding_metadata and response.candidates[0].grounding_metadata.grounding_chunks:
+        if (
+            response.candidates[0].grounding_metadata
+            and response.candidates[0].grounding_metadata.grounding_chunks
+        ):
             for chunk in response.candidates[0].grounding_metadata.grounding_chunks:
                 if chunk.web and chunk.web.uri:
                     valid_link = chunk.web.uri
@@ -78,6 +96,7 @@ async def process_batch(dish_list: List[str], target_language: str, restaurant_n
         print(f"Error during calling Gemini {dish_list}: {e}")
         return []
 
+
 def parse_dish_report(raw_text):
     blocks = raw_text.split("=== DISH_START ===")
     results = []
@@ -87,14 +106,15 @@ def parse_dish_report(raw_text):
             continue
 
         content = block.split("=== DISH_END ===")[0].strip()
-        lines = content.split('\n')
+        lines = content.split("\n")
 
         # Initialize dictionary
         entry = {"dish_name": "", "details": "", "link": "", "link_title": ""}
 
         for line in lines:
             line = line.strip()
-            if not line: continue
+            if not line:
+                continue
 
             # Simple keyword matching for anchors
             if line.lower().startswith("dish_name:"):
