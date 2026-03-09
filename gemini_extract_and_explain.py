@@ -48,7 +48,6 @@ def analyze_menu_image_gemini(image_bytes: bytes, target_language: str, client: 
 
         lines = raw_text.strip().split('\n')
         for line in lines:
-            print("line: ", line)
             if "##" in line:
                 parts = line.split("##", 2)
                 menu_items.append({
